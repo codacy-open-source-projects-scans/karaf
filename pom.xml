@@ -164,7 +164,7 @@
         <distributionManagement.snapshot.name>Apache Development Snapshot Repository</distributionManagement.snapshot.name>
         <distributionManagement.snapshot.url>https://repository.apache.org/content/repositories/snapshots</distributionManagement.snapshot.url>
 
-        <activemq.version>5.19.1</activemq.version>
+        <activemq.version>5.19.2</activemq.version>
         <aopalliance.bundle.version>1.0_6</aopalliance.bundle.version>
         <aspectj.bundle.version>1.9.21.1_1</aspectj.bundle.version>
         <asm.version>9.9.1</asm.version>
@@ -173,7 +173,7 @@
         <bouncycastle.version>1.83</bouncycastle.version>
         <camel.version>4.10.7</camel.version>
         <cglib.bundle.version>3.2.9_1</cglib.bundle.version>
-        <cxf.version>3.6.9</cxf.version>
+        <cxf.version>3.6.10</cxf.version>
         <jackson.annotations.version>2.21</jackson.annotations.version>
         <jackson.version>2.21.0</jackson.version>
         <jna.version>5.18.1</jna.version>

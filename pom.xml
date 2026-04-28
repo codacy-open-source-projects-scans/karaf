@@ -164,14 +164,14 @@
         <distributionManagement.snapshot.name>Apache Development Snapshot Repository</distributionManagement.snapshot.name>
         <distributionManagement.snapshot.url>https://repository.apache.org/content/repositories/snapshots</distributionManagement.snapshot.url>
 
-        <activemq.version>6.2.4</activemq.version>
+        <activemq.version>6.2.5</activemq.version>
         <aopalliance.bundle.version>1.0_6</aopalliance.bundle.version>
         <aspectj.bundle.version>1.9.21.1_1</aspectj.bundle.version>
         <asm.version>9.9.1</asm.version>
         <jakarta.annotation.version>2.1.1</jakarta.annotation.version>
         <awaitility.version>3.1.6</awaitility.version>
         <bouncycastle.version>1.84</bouncycastle.version>
-        <camel.version>4.14.5</camel.version>
+        <camel.version>4.18.1</camel.version>
         <cglib.bundle.version>3.2.9_1</cglib.bundle.version>
         <cxf.version>3.6.10</cxf.version>
         <jackson.annotations.version>2.21</jackson.annotations.version>
@@ -232,7 +232,7 @@
         <felix.eventadmin.webconsole.plugin.version>1.2.0</felix.eventadmin.webconsole.plugin.version>
         <felix.obr.version>1.0.2</felix.obr.version>
         <felix.scr.version>2.2.18</felix.scr.version>
-        <felix.scr.webconsole.plugin.version>2.2.0</felix.scr.webconsole.plugin.version>
+        <felix.scr.webconsole.plugin.version>2.3.0</felix.scr.webconsole.plugin.version>
         <felix.scr.annotation.version>1.12.0</felix.scr.annotation.version>
         <felix.resolver.version>2.0.4</felix.resolver.version>
 

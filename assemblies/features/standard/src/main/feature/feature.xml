@@ -147,6 +147,17 @@ install = admin
 uninstall = admin
 start = admin
 stop = admin
+#
+# repo-add/repo-remove stay open to the viewer role (the plain form only reads/lists
+# a repository), but installing/uninstalling every feature in it via -i/-u requires
+# admin. The bare "= viewer" fallback is required: a command with a regex-only ACL
+# entry and no fallback is treated as admin-only for *every* invocation, because the
+# command guard decides visibility before it knows the actual arguments.
+#
+repo-add[/.*[-][i].*/] = admin
+repo-add = viewer
+repo-remove[/.*[-][u].*/] = admin
+repo-remove = viewer
             </config>
             <bundle start-level="30">mvn:org.apache.karaf.features/org.apache.karaf.features.command/${project.version}</bundle>
         </conditional>
@@ -612,6 +623,12 @@ edit = manager
 edit[/.*jmx[.]acl.*/] = admin
 edit[/.*org[.]apache[.]karaf[.]command[.]acl[.].+/] = admin
 edit[/.*org[.]apache[.]karaf[.]service[.]acl[.].+/] = admin
+#
+# 'install' writes an arbitrary file (fetched from a URL) into ${karaf.etc}, which
+# includes the users, keys and *.acl.* configuration files. It is restricted to
+# 'admin', consistent with bundle:install, feature:install and kar:install.
+#
+install = admin
 property-append = manager
 property-append[/.*jmx[.]acl.*/] = admin
 property-append[/.*org[.]apache[.]karaf[.]command[.]acl[.].+/] = admin
@@ -639,6 +656,52 @@ update = manager
 
     <feature name="instance" description="Provide Instance support" version="${project.version}">
         <bundle start-level="30">mvn:org.apache.karaf.instance/org.apache.karaf.instance.core/${project.version}</bundle>
+        <conditional>
+            <condition>shell</condition>
+            <config name="org.apache.karaf.command.acl.instance">
+################################################################################
+#
+#    Licensed to the Apache Software Foundation (ASF) under one or more
+#    contributor license agreements.  See the NOTICE file distributed with
+#    this work for additional information regarding copyright ownership.
+#    The ASF licenses this file to You under the Apache License, Version 2.0
+#    (the "License"); you may not use this file except in compliance with
+#    the License.  You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
+################################################################################
+
+#
+# This configuration file defines the ACLs for commands in the instance subshell
+#
+# For an explanation of the syntax of this file, see the file:
+#   org.apache.karaf.command.acl.system.cfg
+#
+list = viewer
+status = viewer
+clone = admin
+connect = admin
+create = admin
+destroy = admin
+opts-change = admin
+package = admin
+rename = admin
+restart = admin
+rmi-registry-port-change = admin
+rmi-server-port-change = admin
+ssh-host-change = admin
+ssh-port-change = admin
+start = admin
+stop = admin
+            </config>
+        </conditional>
     </feature>
 
     <feature name="jaas-deployer" description="Allow support of blueprint JAAS configuration in the deploy folder" version="${project.version}">
@@ -1082,6 +1145,11 @@ list* = viewer
 get* = viewer
 is* = viewer
 set* = admin
+# MBean lifecycle operations (creating, registering and unregistering MBeans) are
+# restricted to the admin role.
+createMBean = admin
+registerMBean = admin
+unregisterMBean = admin
 * = admin
         </config>
         <config name="jmx.acl.org.apache.karaf.security.jmx">
@@ -1444,7 +1512,7 @@ org.apache.felix.eventadmin.AddSubject=true
         <feature>jaas</feature>
         <bundle dependency="true" start-level="30">mvn:commons-codec/commons-codec/${commons-codec.version}</bundle>
         <bundle dependency="true" start-level="30">mvn:org.apache.commons/commons-lang3/${commons-lang3.version}</bundle>
-        <bundle dependency="true" start-level="30">mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jasypt/${jasypt.bundle.version}</bundle>
+        <bundle dependency="true" start-level="30">wrap:mvn:org.jasypt/jasypt/${jasypt.version}</bundle>
         <bundle start-level="30">mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.jasypt/${project.version}</bundle>
         <conditional>
             <condition>aries-blueprint</condition>
@@ -1452,14 +1520,14 @@ org.apache.felix.eventadmin.AddSubject=true
         </conditional>
         <conditional>
             <condition>spring</condition>
-            <bundle start-level="30">mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jasypt-spring31/${jasypt.bundle.version}</bundle>
+            <bundle start-level="30">wrap:mvn:org.jasypt/jasypt-spring31/${jasypt.version}</bundle>
         </conditional>
     </feature>
 
     <feature name="spring-security-crypto-encryption" description="Advanced encryption support for Karaf security" version="${project.version}">
         <feature>jaas</feature>
         <bundle dependency="true" start-level="30">mvn:org.bouncycastle/bcprov-jdk18on/${bouncycastle.version}</bundle>
-        <bundle dependency="true" start-level="30">mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.spring-security-crypto/${spring.security53.version}</bundle>
+        <bundle dependency="true" start-level="30">wrap:mvn:org.springframework.security/spring-security-crypto/${spring.security53.version}$Export-Package=org.springframework.security.crypto.*;version="${spring.security53.version}"</bundle>
         <bundle start-level="30">mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.spring-security-crypto/${project.version}</bundle>
     </feature>
 

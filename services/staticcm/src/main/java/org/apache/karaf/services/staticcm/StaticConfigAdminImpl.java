@@ -44,7 +44,7 @@ public class StaticConfigAdminImpl implements ConfigurationAdmin {
         Objects.requireNonNull(configs, "configs");
         this.context = context;
         this.configurations = configs;
-        ServiceTracker<ManagedService, ManagedService> serviceTracker = new ServiceTracker<ManagedService, ManagedService>(context, ManagedService.class, null) {
+        ServiceTracker<ManagedService, ManagedService> serviceTracker = new ServiceTracker<>(context, ManagedService.class, null) {
             @Override
             public ManagedService addingService(ServiceReference<ManagedService> reference) {
                 ManagedService service = context.getService(reference);
@@ -79,7 +79,7 @@ public class StaticConfigAdminImpl implements ConfigurationAdmin {
         serviceTracker.open();
 
         ServiceTracker<ManagedServiceFactory, ManagedServiceFactory> factoryTracker
-                = new ServiceTracker<ManagedServiceFactory, ManagedServiceFactory>(context, ManagedServiceFactory.class, null) {
+                = new ServiceTracker<>(context, ManagedServiceFactory.class, null) {
             @Override
             public ManagedServiceFactory addingService(ServiceReference<ManagedServiceFactory> reference) {
                 ManagedServiceFactory factory = context.getService(reference);
@@ -109,7 +109,7 @@ public class StaticConfigAdminImpl implements ConfigurationAdmin {
         factoryTracker.open();
     }
     
-    private void invokeUpdate(ManagedService service, Configuration config) {
+    private static void invokeUpdate(ManagedService service, Configuration config) {
 		try {
 			service.updated(config == null ? null : config.getProcessedProperties(null));
 		} catch (final Exception e) {

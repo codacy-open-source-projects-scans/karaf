@@ -20,7 +20,6 @@
 package org.apache.karaf.config.command.completers;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Dictionary;
@@ -45,6 +44,8 @@ import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.metatype.AttributeDefinition;
 import org.osgi.service.metatype.ObjectClassDefinition;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * {@link Completer} for Configuration Admin properties.
@@ -80,7 +81,7 @@ public class ConfigurationPropertyCompleter implements Completer {
      * Retrieves the pid stored in the {@link Session} or passed as an argument.
      * Argument takes precedence from pid stored in the {@link Session}.
      */
-    private String getPid(Session session, CommandLine commandLine) {
+    private static String getPid(Session session, CommandLine commandLine) {
         String pid = (String) session.get(ConfigCommandSupport.PROPERTY_CONFIG_PID);
         if (commandLine.getArguments().length > 0) {
             List<String> arguments = Arrays.asList(commandLine.getArguments());
@@ -106,7 +107,6 @@ public class ConfigurationPropertyCompleter implements Completer {
      * @param pid
      * @return
      */
-    @SuppressWarnings("rawtypes")
     private Set<String> getPropertyNames(String pid) {
         Set<String> propertyNames = new HashSet<>();
         if (pid != null) {     
@@ -116,9 +116,9 @@ public class ConfigurationPropertyCompleter implements Completer {
                 if (configs != null && configs.length > 0) {
                     Configuration configuration = configs[0];
                     if (configuration != null) {
-                        Dictionary properties = configuration.getProcessedProperties(null);
+                        Dictionary<?, ?> properties = configuration.getProcessedProperties(null);
                         if (properties != null) {
-                            Enumeration keys = properties.keys();
+                            Enumeration<?> keys = properties.keys();
                             while (keys.hasMoreElements()) {
                                 propertyNames.add(String.valueOf(keys.nextElement()));
                             }
@@ -157,16 +157,14 @@ public class ConfigurationPropertyCompleter implements Completer {
             
     }
     
-    private List<String> collectMetaConfigProperties(Optional<MetaInfo> info){
-        Optional<AttributeDefinition[]> attrs = info.map(e -> e.getDefinition().getAttributeDefinitions(ObjectClassDefinition.ALL));            
-        if(attrs.isPresent()) {
-            List<String> properties = new ArrayList<>(attrs.get().length);            
-            for (AttributeDefinition attr : attrs.get()) {                
-                properties.add(attr.getID());
-            }           
-            return properties;    
-        }
-        return Collections.emptyList();
+    private List<String> collectMetaConfigProperties(MetaInfo info){
+        return Optional.ofNullable(info)
+            .map(MetaInfo::getDefinition)
+            .map(ocd -> ocd.getAttributeDefinitions(ObjectClassDefinition.ALL))
+            .stream()
+            .flatMap(Arrays::stream)
+            .map(AttributeDefinition::getID)
+            .collect(toList());
     }
 
     public ConfigurationAdmin getConfigAdmin() {

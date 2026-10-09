@@ -179,6 +179,12 @@ public class ConfigProperties {
      */
     private static final String PROPERTY_USE_LOCK = "karaf.lock";
 
+    /**
+     * When true (default), the OSGi bundle cache is automatically cleaned if a JDK version
+     * change is detected since the last start of this instance. See {@link Utils#cleanCacheOnJdkChange}.
+     */
+    private static final String PROPERTY_CLEAN_CACHE_ON_JDK_CHANGE = "karaf.clean.cache.on.jdk.change";
+
     File karafHome;
     File karafBase;
     File karafData;
@@ -304,6 +310,10 @@ public class ConfigProperties {
             props.setProperty(Constants.FRAMEWORK_STORAGE, storage.getAbsolutePath());
         }
 
+        if (Boolean.parseBoolean(System.getProperty(PROPERTY_CLEAN_CACHE_ON_JDK_CHANGE, "true"))) {
+            Utils.cleanCacheOnJdkChange(karafData, new File(props.getProperty(Constants.FRAMEWORK_STORAGE)));
+        }
+
         if (shutdownCommand == null || shutdownCommand.isEmpty()) {
             try {
                 shutdownCommand = UUID.randomUUID().toString();
@@ -355,7 +365,7 @@ public class ConfigProperties {
         return ibsl;
     }
 
-    private void configureSAAJForIBMJVM() {
+    private static void configureSAAJForIBMJVM() {
         if (System.getProperty("java.vendor").equals("IBM Corporation"))  {
             System.setProperty("javax.xml.soap.MessageFactory",
                                "com.sun.xml.internal.messaging.saaj.soap.ver1_1.SOAPMessageFactory1_1Impl");

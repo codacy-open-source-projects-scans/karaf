@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 import org.apache.felix.utils.properties.InterpolationHelper;
 import org.apache.felix.utils.properties.Properties;
@@ -87,6 +88,10 @@ public class InstanceServiceImpl implements InstanceService {
     private static final String DEFAULT_SHUTDOWN_COMMAND = "SHUTDOWN";
 
     public static final String DEFAULT_JAVA_OPTS = "-Xmx512m -XX:+UnlockDiagnosticVMOptions";
+
+    // javaOpts is concatenated unquoted into a shell command line (see doStart/restartInstance), so it must
+    // never contain shell metacharacters; only characters that can legally appear in JVM option syntax are allowed.
+    private static final Pattern SAFE_JAVA_OPTS = Pattern.compile("[A-Za-z0-9_ \\t\\-+.,:=/@*]*");
 
     private LinkedHashMap<String, InstanceImpl> proxies = new LinkedHashMap<>();
 
@@ -180,7 +185,7 @@ public class InstanceServiceImpl implements InstanceService {
         return state;
     }
 
-    private void saveData(State state, Properties storage) {
+    private static void saveData(State state, Properties storage) {
         storage.put("ssh.port", Integer.toString(state.defaultSshPortStart));
         storage.put("rmi.registry.port", Integer.toString(state.defaultRmiRegistryPortStart));
         storage.put("rmi.server.port", Integer.toString(state.defaultRmiServerPortStart));
@@ -351,6 +356,7 @@ public class InstanceServiceImpl implements InstanceService {
                     "etc/org.apache.karaf.command.acl.bundle.cfg",
                     "etc/org.apache.karaf.command.acl.config.cfg",
                     "etc/org.apache.karaf.command.acl.feature.cfg",
+                    "etc/org.apache.karaf.command.acl.instance.cfg",
                     "etc/org.apache.karaf.command.acl.jaas.cfg",
                     "etc/org.apache.karaf.command.acl.kar.cfg",
                     "etc/org.apache.karaf.command.acl.scope_bundle.cfg",
@@ -483,7 +489,14 @@ public class InstanceServiceImpl implements InstanceService {
         }, true);
     }
 
-    private void doStart(InstanceState instance, String name, String javaOpts) throws IOException {
+    private static void validateJavaOpts(String opts) {
+        if (opts != null && !SAFE_JAVA_OPTS.matcher(opts).matches()) {
+            throw new IllegalArgumentException("Invalid javaOpts: only JVM option characters are allowed "
+                    + "(letters, digits, whitespace and _-+.,:=/@*)");
+        }
+    }
+
+    private static void doStart(InstanceState instance, String name, String javaOpts) throws IOException {
         String opts = javaOpts;
         if (opts == null || opts.length() == 0) {
             opts = instance.opts;
@@ -491,6 +504,7 @@ public class InstanceServiceImpl implements InstanceService {
         if (opts == null || opts.length() == 0) {
             opts = DEFAULT_JAVA_OPTS;
         }
+        validateJavaOpts(opts);
 
         // fallback and read karafOpts from KARAF_OPTS environment if no System property present
         String karafOptsEnv = System.getenv("KARAF_OPTS");
@@ -516,11 +530,7 @@ public class InstanceServiceImpl implements InstanceService {
                 classpath.append(System.getProperty("path.separator"));
                 classpath.append(jdk9Classpath);
             }
-            jdkOpts = " --add-reads=java.xml=java.logging" +
-                      " --add-exports=java.base/org.apache.karaf.specs.locator=java.xml,ALL-UNNAMED" +
-                      " --patch-module java.base=" + System.getProperty("karaf.home") + "/lib/endorsed/org.apache.karaf.specs.locator-" + System.getProperty("karaf.version") + ".jar" +
-                      " --patch-module java.xml=" + System.getProperty("karaf.home") + "/lib/endorsed/org.apache.karaf.specs.java.xml-" + System.getProperty("karaf.version") + ".jar" +
-                      " --add-opens java.base/java.security=ALL-UNNAMED" +
+            jdkOpts = " --add-opens java.base/java.security=ALL-UNNAMED" +
                       " --add-opens java.base/java.net=ALL-UNNAMED" +
                       " --add-opens java.base/java.lang=ALL-UNNAMED" +
                       " --add-opens java.base/java.util=ALL-UNNAMED" +
@@ -541,7 +551,7 @@ public class InstanceServiceImpl implements InstanceService {
                 jdkOpts += " -Djava.security.manager=allow";
             }
         } else {
-            jdkOpts = " -Djava.endorsed.dirs=\"" + new File(new File(new File(System.getProperty("java.home"), "jre"), "lib"), "endorsed") + System.getProperty("path.separator") + new File(new File(System.getProperty("java.home"), "lib"), "endorsed") + System.getProperty("path.separator") + new File(libDir, "endorsed").getCanonicalPath() + "\""
+            jdkOpts = " -Djava.endorsed.dirs=\"" + new File(new File(new File(System.getProperty("java.home"), "jre"), "lib"), "endorsed") + System.getProperty("path.separator") + new File(new File(System.getProperty("java.home"), "lib"), "endorsed") + "\""
                     + " -Djava.ext.dirs=\"" + new File(new File(new File(System.getProperty("java.home"), "jre"), "lib"), "ext") + System.getProperty("path.separator") + new File(new File(System.getProperty("java.home"), "lib"), "ext") + System.getProperty("path.separator") + new File(libDir, "ext").getCanonicalPath() + "\"";
         }
         String command = "\""
@@ -573,7 +583,7 @@ public class InstanceServiceImpl implements InstanceService {
         instance.pid = process.getPid();
     }
 
-    private StringBuilder classpathFromLibDir(File libDir) throws IOException {
+    private static StringBuilder classpathFromLibDir(File libDir) throws IOException {
         File[] jars = libDir.listFiles((dir, name) -> name.endsWith(".jar"));
         StringBuilder classpath = new StringBuilder();
         if (jars != null) {
@@ -587,7 +597,7 @@ public class InstanceServiceImpl implements InstanceService {
         return classpath;
     }
 
-    private void addJar(StringBuilder sb, String groupId, String artifactId) {
+    private static void addJar(StringBuilder sb, String groupId, String artifactId) {
         File artifactDir = new File(System.getProperty("karaf.home") + File.separator +
                                     "system" + File.separator +
                                     groupId.replaceAll("\\.", File.separator) + File.separator +
@@ -619,6 +629,7 @@ public class InstanceServiceImpl implements InstanceService {
             }
             String current = System.getProperty("karaf.name");
             if (name.equals(current)) {
+                validateJavaOpts(javaOpts);
                 String location = System.getProperty("karaf.home");
                 StringBuilder classpath = new StringBuilder();
                 addJar(classpath, "org.apache.karaf.instance", "org.apache.karaf.instance.core");
@@ -829,7 +840,7 @@ public class InstanceServiceImpl implements InstanceService {
         }, true);
     }
 
-    private void checkPid(InstanceState instance) throws IOException {
+    private static void checkPid(InstanceState instance) throws IOException {
         if (instance.pid != 0) {
             Process process = new ProcessBuilderFactoryImpl().newBuilder().attach(instance.pid);
             if (!process.isRunning()) {
@@ -917,7 +928,7 @@ public class InstanceServiceImpl implements InstanceService {
     }
 
 
-    private Integer getKarafPort(State state, String name, String path, final String key) {
+    private static Integer getKarafPort(State state, String name, String path, final String key) {
         InstanceState instance = state.instances.get(name);
         if (instance == null) {
             throw new IllegalArgumentException("Instance " + name + " not found");
@@ -952,10 +963,10 @@ public class InstanceServiceImpl implements InstanceService {
     }
 
     private String getKarafHost(final String name, final String path, final String key) {
-        return execute(state -> InstanceServiceImpl.this.getKarafHost(state, name, path, key), false);
+        return execute(state -> getKarafHost(state, name, path, key), false);
     }
 
-    private String getKarafHost(State state, String name, String path, final String key) {
+    private static String getKarafHost(State state, String name, String path, final String key) {
         InstanceState instance = state.instances.get(name);
         if (instance == null) {
             throw new IllegalArgumentException("Instance " + name + " not found");
@@ -1132,7 +1143,7 @@ public class InstanceServiceImpl implements InstanceService {
      * @param is
      * @param os
      */
-    private void copyStream(InputStream is, OutputStream os) {
+    private static void copyStream(InputStream is, OutputStream os) {
         PrintStream out = new PrintStream(os);
         Scanner scanner = new Scanner(is);
         while (scanner.hasNextLine() ) {
@@ -1142,7 +1153,7 @@ public class InstanceServiceImpl implements InstanceService {
         scanner.close();
     }
 
-    private void filterResource(File basedir, String path, HashMap<String, String> props) throws IOException {
+    private static void filterResource(File basedir, String path, HashMap<String, String> props) throws IOException {
         File file = new File(basedir, path);
         File bak = new File(basedir, path + BACKUP_EXTENSION);
         if (!file.exists()) {
@@ -1175,7 +1186,7 @@ public class InstanceServiceImpl implements InstanceService {
         }
     }
 
-    private void copyAndFilterResource(InputStream source, OutputStream target, Map<String, String> props) throws IOException {
+    private static void copyAndFilterResource(InputStream source, OutputStream target, Map<String, String> props) throws IOException {
         // read it line at a time so that we can use the platform line ending when we write it out.
         PrintStream out = new PrintStream(target);
         Scanner scanner = new Scanner(source);
@@ -1200,7 +1211,7 @@ public class InstanceServiceImpl implements InstanceService {
         }
     }
 
-    private String filter(String line, Map<String, String> props) {
+    private static String filter(String line, Map<String, String> props) {
         for (Map.Entry<String, String> i : props.entrySet()) {
             int p1 = line.indexOf(i.getKey());
             if( p1 >= 0 ) {
@@ -1212,7 +1223,7 @@ public class InstanceServiceImpl implements InstanceService {
         return line;
     }
 
-    private void mkdir(File karafBase, String path, boolean printOutput) {
+    private static void mkdir(File karafBase, String path, boolean printOutput) {
         File file = new File(karafBase, path);
         if( !file.exists() ) {
             logDebug("Creating dir: %s", printOutput, file.getPath());
@@ -1220,7 +1231,7 @@ public class InstanceServiceImpl implements InstanceService {
         }
     }
 
-    private void makeFileExecutable(File serviceFile) throws IOException {
+    private static void makeFileExecutable(File serviceFile) throws IOException {
         try {
             Set<PosixFilePermission> permissions = new HashSet<>();
             permissions.add(PosixFilePermission.OWNER_EXECUTE);

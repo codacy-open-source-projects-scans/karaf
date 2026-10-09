@@ -107,6 +107,10 @@
                 uninstall = admin
                 start = admin
                 stop = admin
+                repo-add[/.*[-][i].*/] = admin
+                repo-add = viewer
+                repo-remove[/.*[-][u].*/] = admin
+                repo-remove = viewer
             </config>
             <bundle start-level="30">mvn:org.apache.karaf.features/org.apache.karaf.features.command/${project.version}</bundle>
         </conditional>
@@ -408,6 +412,12 @@
                 edit[/.*jmx[.]acl.*/] = admin
                 edit[/.*org[.]apache[.]karaf[.]command[.]acl[.].+/] = admin
                 edit[/.*org[.]apache[.]karaf[.]service[.]acl[.].+/] = admin
+                #
+                # 'install' writes an arbitrary file (fetched from a URL) into ${karaf.etc}, which
+                # includes the users, keys and *.acl.* configuration files. It is restricted to
+                # 'admin', consistent with bundle:install, feature:install and kar:install.
+                #
+                install = admin
                 property-append = manager
                 property-append[/.*jmx[.]acl.*/] = admin
                 property-append[/.*org[.]apache[.]karaf[.]command[.]acl[.].+/] = admin
@@ -891,7 +901,7 @@
         <feature>jaas</feature>
         <bundle dependency="true" start-level="30">mvn:commons-codec/commons-codec/${commons-codec.version}</bundle>
         <bundle dependency="true" start-level="30">mvn:org.apache.commons/commons-lang3/${commons-lang3.version}</bundle>
-        <bundle dependency="true" start-level="30">mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jasypt/${jasypt.bundle.version}</bundle>
+        <bundle dependency="true" start-level="30">wrap:mvn:org.jasypt/jasypt/${jasypt.version}</bundle>
         <bundle start-level="30">mvn:org.apache.karaf.jaas/org.apache.karaf.jaas.jasypt/${project.version}</bundle>
         <conditional>
             <condition>aries-blueprint</condition>
@@ -899,7 +909,7 @@
         </conditional>
         <conditional>
             <condition>spring</condition>
-            <bundle start-level="30" start="true">mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.jasypt-spring31/${jasypt.bundle.version}</bundle>
+            <bundle start-level="30" start="true">wrap:mvn:org.jasypt/jasypt-spring31/${jasypt.version}</bundle>
         </conditional>
     </feature>
 

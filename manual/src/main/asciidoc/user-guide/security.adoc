@@ -489,10 +489,12 @@ By default, Apache Karaf defines the following commands ACLs:
 * `etc/org.apache.karaf.command.acl.config.cfg` configuration file defines the ACL for `config:*` commands.
  This ACL limits the execution of `config:*` commands with `jmx.acl.*`, `org.apache.karaf.command.acl.*`, and
  `org.apache.karaf.service.acl.*` configuration PID to the users with `admin` role. For the other configuration PID,
- the users with the `manager` role can execute `config:*` commands.
+ the users with the `manager` role can execute `config:*` commands. As `config:install` writes an arbitrary file into
+ the `etc` folder, it is restricted to the users with the `admin` role.
 * `etc/org.apache.karaf.command.acl.feature.cfg` configuration file defines the ACL for `feature:*` commands.
- Only the users with `admin` role can execute `feature:install`, `feature:uninstall`,`feature:start`, `feature:stop` and `feature:update` commands. The other `feature:*`
- commands can be executed by any user.
+ Only the users with `admin` role can execute `feature:install`, `feature:uninstall`,`feature:start`, `feature:stop` and `feature:update` commands. `feature:repo-add`
+ and `feature:repo-remove` require the `admin` role only when used with the `-i`/`--install` or `-u`/`--uninstall` option, which installs or uninstalls every
+ feature in the repository; otherwise they only require the `viewer` role. The other `feature:*` commands can be executed by any user.
 * `etc/org.apache.karaf.command.acl.jaas.cfg` configuration file defines the ACL for `jaas:*` commands.
  Only the users with `admin` role can execute `jaas:update` command. The other `jaas:*` commands can be executed by any
  user.
@@ -505,6 +507,10 @@ By default, Apache Karaf defines the following commands ACLs:
 * `etc/org.apache.karaf.command.acl.system.cfg` configuration file defines the ACL for `system:*` commands.
  Only the users with `admin` role can execute `system:property` and `system:shutdown` commands. Users with `manager` role can call `system:start-level` above 100, otherwise `admin` role is required. Also users with `viewer` role can obtain the current start-level.
  The other `system:*` commands can be executed by any user.
+* `etc/org.apache.karaf.command.acl.jdbc.cfg` configuration file (provided by the `jdbc` feature) defines the ACL for `jdbc:*` commands.
+ As `jdbc:ds-create` stores an arbitrary JDBC URL that pax-jdbc-config turns into a live datasource (several drivers run code at connection time, for instance H2 `INIT=RUNSCRIPT`), and `jdbc:execute` and `jdbc:query` run arbitrary SQL, these commands together with `jdbc:ds-delete` are restricted to the users with the `admin` role. The read-only `jdbc:*` commands require the `viewer` role.
+* `etc/org.apache.karaf.command.acl.jms.cfg` configuration file (provided by the `jms` feature) defines the ACL for `jms:*` commands.
+ As `jms:create` stores an arbitrary broker URL that pax-jms-config turns into a live connection factory, and `jms:send`, `jms:consume` and `jms:move` write to or destructively read from broker destinations, these commands together with `jms:delete` are restricted to the users with the `admin` role. The read-only `jms:*` commands require the `viewer` role.
 
 You can change these default ACLs, and add your own ACLs for additional command scopes (for instance `etc/org.apache.karaf.command.acl.cluster.cfg` for
 Apache Karaf Cellar, `etc/org.apache.karaf.command.acl.camel.cfg` from Apache Camel, ...).

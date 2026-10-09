@@ -247,7 +247,7 @@ public class KarafTestSupport {
                 CoreOptions.systemTimeout(3600000),
                 RBCRemoteTargetOptions.waitForRBCFor(3600000),
                 CoreOptions.mavenBundle().groupId("org.awaitility").artifactId("awaitility").versionAsInProject(),
-                CoreOptions.mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.hamcrest").versionAsInProject(),
+                CoreOptions.mavenBundle().groupId("org.hamcrest").artifactId("hamcrest").versionAsInProject(),
                 CoreOptions.mavenBundle().groupId("org.apache.karaf.itests").artifactId("common").versionAsInProject(),
                 CoreOptions.mavenBundle().groupId("jakarta.annotation").artifactId("jakarta.annotation-api").versionAsInProject(),
                 //replaceConfigurationFile("etc/host.key", getConfigFile("/etc/host.key")),
@@ -260,13 +260,6 @@ public class KarafTestSupport {
                 KarafDistributionOption.editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.localRepository", localRepository),
                 KarafDistributionOption.editConfigurationFilePut("etc/branding.properties", "welcome", ""), // No welcome banner
                 KarafDistributionOption.editConfigurationFilePut("etc/branding-ssh.properties", "welcome", ""),
-                new VMOption("--add-reads=java.xml=java.logging"),
-                new VMOption("--add-exports=java.base/org.apache.karaf.specs.locator=java.xml,ALL-UNNAMED"),
-                new VMOption("--patch-module"),
-                new VMOption("java.base=lib/endorsed/org.apache.karaf.specs.locator-"
-                    + System.getProperty("karaf.version") + ".jar"),
-                new VMOption("--patch-module"), new VMOption("java.xml=lib/endorsed/org.apache.karaf.specs.java.xml-"
-                    + System.getProperty("karaf.version") + ".jar"),
                 new VMOption("--add-opens"),
                 new VMOption("java.base/java.security=ALL-UNNAMED"),
                 new VMOption("--add-opens"),
@@ -288,8 +281,7 @@ public class KarafTestSupport {
                 new VMOption("--add-exports=jdk.naming.rmi/com.sun.jndi.url.rmi=ALL-UNNAMED"),
                 new VMOption("--add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED"),
                 new VMOption("-classpath"),
-                new VMOption("lib/jdk9plus/*" + File.pathSeparator + "lib/boot/*"
-                    + File.pathSeparator + "lib/endorsed/*")
+                new VMOption("lib/jdk9plus/*" + File.pathSeparator + "lib/boot/*")
                 
             };
         } else {
@@ -304,7 +296,7 @@ public class KarafTestSupport {
                 CoreOptions.systemTimeout(3600000),
                 RBCRemoteTargetOptions.waitForRBCFor(3600000),
                 CoreOptions.mavenBundle().groupId("org.awaitility").artifactId("awaitility").versionAsInProject(),
-                CoreOptions.mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.hamcrest").versionAsInProject(),
+                CoreOptions.mavenBundle().groupId("org.hamcrest").artifactId("hamcrest").versionAsInProject(),
                 CoreOptions.mavenBundle().groupId("org.apache.karaf.itests").artifactId("common").versionAsInProject(),
                 //replaceConfigurationFile("etc/host.key", getConfigFile("/etc/host.key")),
                 KarafDistributionOption.replaceConfigurationFile("etc/users.properties", getConfigFile("/etc/users.properties")),

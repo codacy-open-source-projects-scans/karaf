@@ -33,7 +33,7 @@ public class MBeanInvocationHandler implements InvocationHandler {
 
     private final InvocationHandler guard;
 
-    private final List<String> guarded = Collections.unmodifiableList(Arrays.asList("invoke", "getAttribute", "getAttributes", "setAttribute", "setAttributes"));
+    private final List<String> guarded = Collections.unmodifiableList(Arrays.asList("invoke", "getAttribute", "getAttributes", "setAttribute", "setAttributes", "createMBean", "registerMBean", "unregisterMBean"));
 
     public MBeanInvocationHandler(MBeanServer mBeanServer, InvocationHandler guard) {
         wrapped = mBeanServer;
@@ -61,7 +61,7 @@ public class MBeanInvocationHandler implements InvocationHandler {
         
             
         try {
-            return AccessController.doPrivilegedWithCombiner(new PrivilegedExceptionAction<Object>() {
+            return AccessController.doPrivilegedWithCombiner(new PrivilegedExceptionAction<>() {
                 @Override
                 public Object run() throws Exception {
                     try {

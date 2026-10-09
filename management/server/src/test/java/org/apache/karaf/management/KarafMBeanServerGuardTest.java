@@ -432,12 +432,12 @@ public class KarafMBeanServerGuardTest extends TestCase {
     }
 
     @SuppressWarnings("unchecked")
-    private ConfigurationAdmin getMockConfigAdmin(Dictionary<String, Object> configuration) throws IOException, InvalidSyntaxException {
+    private static ConfigurationAdmin getMockConfigAdmin(Dictionary<String, Object> configuration) throws IOException, InvalidSyntaxException {
         configuration.put(Constants.SERVICE_PID, "jmx.acl.foo.bar.Test");
         return getMockConfigAdmin2(configuration);
     }
 
-    private ConfigurationAdmin getMockConfigAdmin2(Dictionary<String, Object>... configurations) throws IOException, InvalidSyntaxException {
+    private static ConfigurationAdmin getMockConfigAdmin2(Dictionary<String, Object>... configurations) throws IOException, InvalidSyntaxException {
         List<Configuration> allConfigs = new ArrayList<>();
         for (Dictionary<String, Object> configuration : configurations) {
             Configuration conf = EasyMock.createMock(Configuration.class);
@@ -519,6 +519,135 @@ public class KarafMBeanServerGuardTest extends TestCase {
             } catch (Throwable ex) {
                 throw new RuntimeException(ex);
             }
+        });
+    }
+
+    public void testCreateRegisterUnregisterMBeanRequireRole() throws Throwable {
+        Dictionary<String, Object> configuration = new Hashtable<>();
+        configuration.put("createMBean", "admin");
+        configuration.put("registerMBean", "admin");
+        configuration.put("unregisterMBean", "admin");
+        configuration.put("*", "admin");
+        ConfigurationAdmin ca = getMockConfigAdmin(configuration);
+
+        final KarafMBeanServerGuard guard = new KarafMBeanServerGuard();
+        guard.setConfigAdmin(ca);
+
+        final Method createMBean = MBeanServer.class.getMethod("createMBean", String.class, ObjectName.class);
+        final Method registerMBean = MBeanServer.class.getMethod("registerMBean", Object.class, ObjectName.class);
+        final Method unregisterMBean = MBeanServer.class.getMethod("unregisterMBean", ObjectName.class);
+        final ObjectName on = ObjectName.getInstance("foo.bar:type=Test");
+
+        Subject viewer = loginWithTestRoles("viewer");
+        Subject.doAs(viewer, (PrivilegedAction<Void>) () -> {
+            try {
+                guard.invoke(null, createMBean, new Object[]{"javax.management.loading.MLet", on});
+                fail("createMBean should be blocked for a non-admin user");
+            } catch (SecurityException se) {
+                // good
+            } catch (Throwable th) {
+                throw new RuntimeException(th);
+            }
+            try {
+                guard.invoke(null, registerMBean, new Object[]{new Object(), on});
+                fail("registerMBean should be blocked for a non-admin user");
+            } catch (SecurityException se) {
+                // good
+            } catch (Throwable th) {
+                throw new RuntimeException(th);
+            }
+            try {
+                guard.invoke(null, unregisterMBean, new Object[]{on});
+                fail("unregisterMBean should be blocked for a non-admin user");
+            } catch (SecurityException se) {
+                // good
+            } catch (Throwable th) {
+                throw new RuntimeException(th);
+            }
+            return null;
+        });
+
+        Subject admin = loginWithTestRoles("admin");
+        Subject.doAs(admin, (PrivilegedAction<Void>) () -> {
+            try {
+                // none of these should throw for an admin user
+                guard.invoke(null, createMBean, new Object[]{"javax.management.loading.MLet", on});
+                guard.invoke(null, registerMBean, new Object[]{new Object(), on});
+                guard.invoke(null, unregisterMBean, new Object[]{on});
+                return null;
+            } catch (Throwable th) {
+                throw new RuntimeException(th);
+            }
+        });
+    }
+
+    public void testCreateMBeanWithNullObjectName() throws Throwable {
+        Dictionary<String, Object> configuration = new Hashtable<>();
+        configuration.put(Constants.SERVICE_PID, "jmx.acl");
+        configuration.put("createMBean", "admin");
+        configuration.put("*", "admin");
+        ConfigurationAdmin ca = getMockConfigAdmin2(configuration);
+
+        final KarafMBeanServerGuard guard = new KarafMBeanServerGuard();
+        guard.setConfigAdmin(ca);
+
+        final Method createMBean = MBeanServer.class.getMethod("createMBean", String.class, ObjectName.class);
+
+        Subject viewer = loginWithTestRoles("viewer");
+        Subject.doAs(viewer, (PrivilegedAction<Void>) () -> {
+            try {
+                // a null ObjectName falls back to the generic jmx.acl configuration
+                guard.invoke(null, createMBean, new Object[]{"javax.management.loading.MLet", null});
+                fail("createMBean with a null name should be blocked for a non-admin user");
+            } catch (SecurityException se) {
+                // good
+            } catch (Throwable th) {
+                throw new RuntimeException(th);
+            }
+            return null;
+        });
+
+        Subject admin = loginWithTestRoles("admin");
+        Subject.doAs(admin, (PrivilegedAction<Void>) () -> {
+            try {
+                guard.invoke(null, createMBean, new Object[]{"javax.management.loading.MLet", null});
+                return null;
+            } catch (Throwable th) {
+                throw new RuntimeException(th);
+            }
+        });
+    }
+
+    public void testCreateMBeanClassNameMatch() throws Throwable {
+        Dictionary<String, Object> configuration = new Hashtable<>();
+        configuration.put("createMBean(java.lang.String)[/javax\\.management\\.loading\\..*/]", "admin");
+        configuration.put("createMBean", "viewer");
+        ConfigurationAdmin ca = getMockConfigAdmin(configuration);
+
+        final KarafMBeanServerGuard guard = new KarafMBeanServerGuard();
+        guard.setConfigAdmin(ca);
+
+        final Method createMBean = MBeanServer.class.getMethod("createMBean", String.class, ObjectName.class);
+        final ObjectName on = ObjectName.getInstance("foo.bar:type=Test");
+
+        Subject viewer = loginWithTestRoles("viewer");
+        Subject.doAs(viewer, (PrivilegedAction<Void>) () -> {
+            try {
+                // a "regular" class only requires the viewer role
+                guard.invoke(null, createMBean, new Object[]{"com.example.Foo", on});
+            } catch (Throwable th) {
+                throw new RuntimeException(th);
+            }
+            try {
+                // a JMX classloader MBean requires the admin role
+                guard.invoke(null, createMBean, new Object[]{"javax.management.loading.MLet", on});
+                fail("createMBean of a JMX classloader should be blocked for a non-admin user");
+            } catch (SecurityException se) {
+                // good
+            } catch (Throwable th) {
+                throw new RuntimeException(th);
+            }
+            return null;
         });
     }
 
@@ -1423,7 +1552,7 @@ public class KarafMBeanServerGuardTest extends TestCase {
         });
     }
 
-    private Subject loginWithTestRoles(String... roles) throws LoginException {
+    private static Subject loginWithTestRoles(String... roles) throws LoginException {
         Subject subject = new Subject();
         LoginModule lm = new TestLoginModule(roles);
         lm.initialize(subject, null, null, null);

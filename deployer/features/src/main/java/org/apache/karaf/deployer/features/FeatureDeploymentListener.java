@@ -95,7 +95,7 @@ public class FeatureDeploymentListener implements ArtifactUrlTransformer, Bundle
         bundleContext.removeBundleListener(this);
     }
 
-    private boolean isKnownFeaturesURI(String uri){
+    private static boolean isKnownFeaturesURI(String uri){
     	if(uri == null){
     		return false;
     	}
@@ -219,7 +219,7 @@ public class FeatureDeploymentListener implements ArtifactUrlTransformer, Bundle
             List<URI> repsToAdd = new ArrayList<>();
             List<String> reqsToAdd = new ArrayList<>();
             if (bundleEvent.getType() == BundleEvent.RESOLVED) {
-                Enumeration featuresUrlEnumeration = bundle.findEntries("/META-INF/" + FEATURE_PATH + "/", "*.xml", false);
+                Enumeration<?> featuresUrlEnumeration = bundle.findEntries("/META-INF/" + FEATURE_PATH + "/", "*.xml", false);
                 while (featuresUrlEnumeration != null && featuresUrlEnumeration.hasMoreElements()) {
                     URL url = (URL) featuresUrlEnumeration.nextElement();
                     URI uri = url.toURI();

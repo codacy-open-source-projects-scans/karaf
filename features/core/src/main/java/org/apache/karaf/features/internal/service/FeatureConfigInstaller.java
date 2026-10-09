@@ -21,10 +21,12 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import org.apache.felix.cm.json.Configurations;
+import org.apache.felix.cm.json.io.Configurations;
 import org.apache.felix.utils.properties.InterpolationHelper;
 import org.apache.felix.utils.properties.TypedProperties;
 import org.apache.karaf.features.ConfigFileInfo;
@@ -86,7 +88,7 @@ public class FeatureConfigInstaller {
         }
     }
 
-    private Configuration findExistingConfiguration(ConfigurationAdmin configurationAdmin, ConfigId cid)
+    private static Configuration findExistingConfiguration(ConfigurationAdmin configurationAdmin, ConfigId cid)
         throws IOException, InvalidSyntaxException {
         String filter;
         if (!cid.isFactoryPid) {
@@ -211,7 +213,7 @@ public class FeatureConfigInstaller {
         }
     }
 
-    private Dictionary<String, Object> convertToDict(Map<String, Object> props) {
+    private static Dictionary<String, Object> convertToDict(Map<String, Object> props) {
         Dictionary<String, Object> cfgProps = new Hashtable<>();
         for (Map.Entry<String, Object> e : props.entrySet()) {
             cfgProps.put(e.getKey(), e.getValue());
@@ -219,7 +221,7 @@ public class FeatureConfigInstaller {
         return cfgProps;
     }
 
-    private TypedProperties convertToTypedProperties(Dictionary<String, Object> dict) {
+    private static TypedProperties convertToTypedProperties(Dictionary<String, Object> dict) {
         TypedProperties typedProperties = new TypedProperties();
         Enumeration<String> keys = dict.keys();
         while (keys.hasMoreElements()) {
@@ -330,7 +332,12 @@ public class FeatureConfigInstaller {
                 } else {
                     props.save(tmpCfgFile);
                 }
-                tmpCfgFile.renameTo(cfgFile);
+try {
+                    Files.move(tmpCfgFile.toPath(), cfgFile.toPath(),
+                            StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                    Files.move(tmpCfgFile.toPath(), cfgFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
             } else {
                 updateExistingConfig(props, append, cfgFile, jsonFormat);
             }
@@ -400,11 +407,19 @@ public class FeatureConfigInstaller {
             }
         }
         storage.mkdirs();
+        // write to a temporary file and rename it to the target file so that a concurrent writer
+        // (e.g. fileinstall persisting the configuration update on the CM Event Dispatcher thread)
+        // never observes a partially written / corrupted cfg file
+        File tmpCfgFile = File.createTempFile(cfgFile.getName(), ".tmp", cfgFile.getParentFile());
         if (jsonFormat) {
-            Configurations.buildWriter().build(new FileWriter(cfgFile)).writeConfiguration(new Hashtable(properties));
+            Configurations.buildWriter().build(new FileWriter(tmpCfgFile)).writeConfiguration(new Hashtable(properties));
         } else {
-            properties.save(cfgFile);
+            properties.save(tmpCfgFile);
         }
+        // File.renameTo() silently fails on Windows when the destination already exists,
+        // so use Files.move() with REPLACE_EXISTING to get a working atomic replace on every OS
+        Files.move(tmpCfgFile.toPath(), cfgFile.toPath(),
+                StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
     private boolean isInternalKey(String key) {

@@ -166,13 +166,13 @@
         <activemq.version>6.3.2</activemq.version>
         <aopalliance.version>1.0</aopalliance.version>
         <aspectj.version>1.9.21.1</aspectj.version>
-        <asm.version>9.10.1</asm.version>
+        <asm.version>9.11</asm.version>
         <jakarta.annotation.version>2.1.1</jakarta.annotation.version>
         <awaitility.version>4.3.0</awaitility.version>
         <bouncycastle.version>1.86</bouncycastle.version>
         <camel.version>4.18.4</camel.version>
         <cglib.version>3.2.9</cglib.version>
-        <cxf.version>4.2.3</cxf.version>
+        <cxf.version>4.2.4</cxf.version>
         <jackson.annotations.version>2.22</jackson.annotations.version>
         <jackson.version>2.22.3</jackson.version>
         <jna.version>5.19.1</jna.version>
@@ -282,7 +282,7 @@
         <httpclient.version>4.5.14</httpclient.version>
         <jansi.version>2.4.3</jansi.version>
         <javassist.version>3.32.0-GA</javassist.version>
-        <jline.version>4.4.6</jline.version>
+        <jline.version>4.4.7</jline.version>
         <junit.version>4.13.2</junit.version>
         <jsw.version>3.2.3</jsw.version>
         <log4j.version>2.26.1</log4j.version>
@@ -329,7 +329,7 @@
         <pax.swissbox.version>1.9.0</pax.swissbox.version>
         <pax.url.version>3.0.3</pax.url.version>
         <pax.web.version>11.1.3</pax.web.version>
-        <jetty.version>12.1.12</jetty.version>
+        <jetty.version>12.1.14</jetty.version>
         <pax.tinybundle.version>4.0.1</pax.tinybundle.version>
         <pax.jdbc.version>1.5.7</pax.jdbc.version>
         <pax.jms.version>1.1.3</pax.jms.version>
